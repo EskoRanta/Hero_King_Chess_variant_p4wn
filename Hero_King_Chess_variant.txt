@@ -1,0 +1,9 @@
+In Hero King Chess Variant, there is only one change in the rules of standard chess, namely that the pieces are replaced by Hero King -piece
+who is still the royal piece and moves like the standard chess king, but has *frontal shielding*, which changes the game drastically.
+
+The Hero King can't be threatened by any piece in a rank that is in forward position from the Hero King's rank (as defined by what is forward for his pawns).
+That is, rooks and queens can check him from the same rank, or from back, knights and bishops only from behind, but pawns... never!
+That makes the Hero King a fearsome frontline warrior totally unlike the wimpy standard chess king.
+
+Have fun playing the variant! It will surely be confusing at first and the situations with forward positioned Hero Kings will look crazy, but you'll learn.
+A hint: Capturing an enemy rook from its starting square by your Hero King is very tempting, but it will often lead to tragedy. ;)
