@@ -58,12 +58,12 @@ var P4_MOVES = [[], [],
  * a wee boost over knights.
  */
 var P4_VALUES=[0, 0,      //Piece values
-               20, 20,    //pawns
-               100, 100,  //rooks
+               15, 15, //20, 20,    //pawns
+               140, 140, //100, 100,  //rooks
                60, 60,    //knights
                61, 61,    //bishops
                8000, 8000,//kings
-               180, 180,  //queens
+               250, 250, //180, 180,  //queens
                0];
 
 /* A score greater than P4_WIN indicates a king has been taken. It is
@@ -184,7 +184,7 @@ function p4_prepare(state){
      * should work above moveno == 50, but this is javascript.
      */
     var earliness_weight = (moveno > 50) ? 0 : parseInt(6 * Math.exp(moveno * -0.07));
-    var king_should_hide = moveno < 12;
+    //var king_should_hide = false; //moveno < 12;
     var early = moveno < 5;
     /* find the pieces, kings, and weigh material*/
     var kings = [0, 0];
@@ -208,8 +208,8 @@ function p4_prepare(state){
 
     /*does a draw seem likely soon?*/
     var draw_likely = (state.draw_timeout > 90 || state.current_repetitions >= 2);
-    if (draw_likely)
-        p4_log("draw likely", state.current_repetitions, state.draw_timeout);
+    /*if (draw_likely)
+        p4_log("draw likely", state.current_repetitions, state.draw_timeout);*/
     state.values = [[], []];
     var qvalue = P4_VALUES[P4_QUEEN]; /*used as ballast in various ratios*/
     var material_sum = material[0] + material[1] + 2 * qvalue;
@@ -266,31 +266,31 @@ function p4_prepare(state){
             for (var c = 0; c < 2; c++){
                 var dx = Math.abs(kx[1 - c] - x);
                 var dy = Math.abs(ky[1 - c] - y);
-                var our_dx = Math.abs(kx[c] - x);
-                var our_dy = Math.abs(ky[c] - y);
+                //var our_dx = Math.abs(kx[c] - x);
+                //var our_dy = Math.abs(ky[c] - y);
 
-                var d = Math.max(Math.sqrt(dx * dx + dy * dy), 1) + 1;
+                var d = Math.max(Math.sqrt(dx * dx + dy * dy), 1) + 1; // distance to the enemy king + 1
                 var mul = multipliers[c]; /*(mul < 1) <==> we're winning*/
                 var mul3 = mul * mul * mul;
-                var at_home = y == 2 + c * 7;
-                var pawn_home = y == 3 + c * 5;
-                var row4 = y == 5 + c;
-                var promotion_row = y == 9 - c * 7;
+                var at_home = y == 2 + c * 7; // w: 2, b: 9 
+                var pawn_home = y == 3 + c * 5; // w: 3, b: 8
+                var row4 = y == 5 + c; // w: 5 b: 6
+                var promotion_row = y == 9 - c * 7; //row 9 or 2
                 var get_out = (early && at_home) * -5;
 
-                var knight = parseInt(early_centre * 0.3) + 2 * plateau + get_out;
-                var rook = parseInt(early_centre * 0.3);
-                var bishop = parseInt(early_centre * 0.6) + plateau + get_out;
-                if (at_home){
+                var knight = /*parseInt(early_centre * 0.3) +*/ 2 * plateau + get_out;
+                var rook = 0; //parseInt(early_centre * 0.3);
+                var bishop = /*parseInt(early_centre * 0.6) +*/ plateau + get_out;
+                /*if (at_home){
                     rook += (x == 4 || x == 5) * (earliness_weight + ! target_king);
                     rook += (x == 1 || x == 8) * (moveno > 10 && moveno < 20) * -3;
                     rook += (x == 2 || x == 7) * (moveno > 10 && moveno < 20) * -1;
-                }
+                }*/
 
-                /*Queen wants to stay home early, then jump right in*/
-                /*keep kings back on home row for a while*/
+                /*Queen wants to stay home early, then jump right in*/                
                 var queen = parseInt(plateau * 0.5 + early_centre * (0.5 - early));
-                var king = (king_should_hide && at_home) * 2 * earliness_weight;
+                /*Get king into center early*/
+                var king = 4 * plateau + get_out; //at_home * 2 * earliness_weight;
 
                 /*empty board means pawn advancement is more urgent*/
                 var get_on_with_it = Math.max(emptiness * 2, 1);
@@ -303,8 +303,9 @@ function p4_prepare(state){
                         pawn += parseInt((boost + p4_random_int(state, 4)) * 0.1 *
                                          early_centre);
                     }
-                    if (x == 4 || x == 5){
-                        //discourage middle pawns from waiting at home
+                    if (x == 1 || x == 8){
+                        //encourage edge pawns two step advances
+                        //(maybe rooks can came out that way)
                         pawn -= 3 * pawn_home;
                         pawn += 3 * row4;
                     }
@@ -314,14 +315,15 @@ function p4_prepare(state){
                     pawn += state.values[c][P4_QUEEN] - state.values[c][P4_PAWN];
 
                 /*pawns in front of a castled king should stay there*/
-                pawn += 4 * (y == 3 && ky[c] == 2 && Math.abs(our_dx) < 2 &&
-                             kx[c] != 5 && x != 4 && x != 5);
-                /*passed pawns (having no opposing pawn in front) are encouraged. */
+                /*pawn += 4 * (y == 3 && ky[c] == 2 && Math.abs(our_dx) < 2 &&
+                             kx[c] != 5 && x != 4 && x != 5);*/
+                
+                /*passed pawns away from the enemy king rank are encouraged to advance. */
                 var cols = pawn_cols[1 - c];
                 if (cols[x] == undefined ||
                     (c == 0 && cols[x] < y) ||
                     (c == 1 && cols[x] > y))
-                    pawn += 2;
+                    pawn += 2*dx;
 
                 /* After a while, start going for opposite king. Just
                  * attract pieces into the area so they can mill about in
@@ -333,14 +335,13 @@ function p4_prepare(state){
                  * heuristics.
                  */
                 if (target_king){
-                    knight += 2 * parseInt(8 * mul / d);
-                    rook += 2 * ((dx < 2) + (dy < 2));
-                    bishop += 3 * (Math.abs((dx - dy))  < 2);
-                    queen += 2 * parseInt(8 / d) + (dx * dy == 0) + (dx - dy == 0);
-                    /* The losing king wants to stay in the middle, while
-                     the winning king goes in for the kill.*/
-                    var king_centre_wt = 8 * emptiness * P4_CENTRALISING_WEIGHTS[i];
-                    king += parseInt(150 * emptiness / (mul3 * d) + king_centre_wt * mul3);
+                    //knight += 2 * parseInt(8 * mul / d);
+                    //rook += 2 * ((dx < 2) + (dy < 2));
+                    //bishop += 3 * (Math.abs((dx - dy))  < 2);
+                    //queen += 2 * parseInt(8 / d) + (dx * dy == 0) + (dx - dy == 0);
+                    // The losing king wants to stay in the middle, while
+                    // the winning king goes in for the kill.
+                    king += parseInt(emptiness * (150 / mul3 / d + 8 * P4_CENTRALISING_WEIGHTS[i] * mul3));
                 }
                 weights[P4_PAWN + c][i] = pawn;
                 weights[P4_KNIGHT + c][i] = knight;
@@ -390,26 +391,32 @@ function p4_parse(state, colour, ep, score) {
         a &= 14;
         if(a > 2){    //non-pawns
             var moves = P4_MOVES[a];
-            if(a & 2){
+            if(a & 2){ // king, knight
                 for(i = 0; i < 8; i++){
                     e = s + moves[i];
                     E = board[e];
-                    if(!E){
+                    if(!E) { // empty square inside the 8x8 board
                         movelist.push([weight + values[E] + weight_lut[e], s, e]);
                     }
-                    else if((E&17)==other_colour){
-                        captures.push([weight + values[E] + weight_lut[e] + all_weights[E][e], s, e]);
+                    else if((E&17)===other_colour){ // capture
+                        //if (E === P4_KING)
+                                //p4_log("s: "+s+" e: "+e+" dir: "+(1-(colour<<1)));
+                        if((E&P4_KING) !== P4_KING || (1-(colour<<1))*(s - s%10) >= (1-(colour<<1))*(e - e%10)){
+                            //if (E === P4_KING)
+                                //p4_log("Taking: "+E);
+                            captures.push([weight + values[E] + weight_lut[e] + all_weights[E][e], s, e]);
+                        }
                     }
                 }
                 if(a == P4_KING && castle_flags){
                     if((castle_flags & 1) &&
-                        (board[s - 1] + board[s - 2] + board[s - 3] == 0) &&
-                        p4_check_castling(board, s - 2, other_colour, dir, -1)){//Q side
-                        movelist.push([weight + 12, s, s - 2]);     //no analysis, just encouragement
+                        (board[s-1] + board[s-2] + board[s-3] == 0) &&
+                        p4_check_castling(board, s - 2,other_colour,dir,-1)){//Q side
+                        movelist.push([weight - 16, s, s - 2]);     //no analysis, just discouragement
                     }
-                    if((castle_flags & 2) && (board[s + 1] + board[s + 2] == 0) &&
+                    if((castle_flags & 2) && (board[s+1]+board[s+2] == 0)&&
                         p4_check_castling(board, s, other_colour, dir, 1)){//K side
-                        movelist.push([weight + 13, s, s + 2]);
+                        movelist.push([weight - 17, s, s + 2]);
                     }
                 }
             }
@@ -424,10 +431,17 @@ function p4_parse(state, colour, ep, score) {
                         if(!E){
                             movelist.push([weight + values[E] + weight_lut[e], s, e]);
                         }
-                        else if((E&17)==other_colour){
-                            captures.push([weight + values[E] + weight_lut[e] + all_weights[E][e], s, e]);
+                        else if((E&17)===other_colour){
+                            //if (E === P4_KING)
+                                //p4_log("s: "+s+" e: "+e+" dir: "+(1-(colour<<1)));
+                            if((E&P4_KING) !== P4_KING || (1-(colour<<1))*(s - s%10) >= (1-(colour<<1))*(e - e%10)){
+                                //if (E === P4_KING)
+                                    //p4_log("Taking: "+E);
+                                //if ([weight + values[E] + weight_lut[e] + all_weights[E][e])
+                                captures.push([weight + values[E] + weight_lut[e] + all_weights[E][e], s, e]);
+                            }
                         }
-                    }while(!E);
+                    } while(!E);
                 }
             }
         }
@@ -443,12 +457,12 @@ function p4_parse(state, colour, ep, score) {
             }
             /* +/-1 for pawn capturing */
             E = board[--e];
-            if(E && (E & 17) == other_colour){
+            if(E && (E & 17) == other_colour && (E&P4_KING) !== P4_KING){
                 captures.push([weight + values[E] + weight_lut[e] + all_weights[E][e], s, e]);
             }
             e += 2;
             E = board[e];
-            if(E && (E & 17) == other_colour){
+            if(E && (E & 17) == other_colour  && (E&P4_KING) !== P4_KING){
                 captures.push([weight + values[E] + weight_lut[e] + all_weights[E][e], s, e]);
             }
         }
@@ -583,21 +597,26 @@ function p4_check_check(state, colour){
     var i = pieces.length;
     do {
         p = pieces[--i];
-    } while (p[0] != (P4_KING | colour));
+    } while (p[0] !== (P4_KING | colour));
     var s = p[1];
     var other_colour = 1 - colour;
     var dir = 10 - 20 * colour;
-    if (board[s + dir - 1] == (P4_PAWN | other_colour) ||
+    /*if (board[s + dir - 1] == (P4_PAWN | other_colour) ||
         board[s + dir + 1] == (P4_PAWN | other_colour))
-        return true;
+        return true;*/
     var knight_moves = P4_MOVES[P4_KNIGHT];
     var king_moves = P4_MOVES[P4_KING];
     var knight = P4_KNIGHT | other_colour;
     var king = P4_KING | other_colour;
     for (i = 0; i < 8; i++){
-        if (board[s + knight_moves[i]] == knight ||
-            board[s + king_moves[i]] == king)
+        if (board[s + knight_moves[i]] == knight && (1-(colour<<1))*(s - s%10) >= (1-(colour<<1))*(s + knight_moves[i] - (s + knight_moves[i])%10)) {
+            //p4_log("s: "+s+" e: "+(s + knight_moves[i])+" dir: "+(1-(colour<<1)));
             return true;
+        }
+        if (board[s + king_moves[i]] == king && (1-(colour<<1))*(s - s%10) >= (1-(colour<<1))*(s + king_moves[i] - (s + king_moves[i])%10)) {
+            //p4_log("s: "+s+" e: "+(s + king_moves[i])+" dir: "+(1-(colour<<1)));
+            return true;
+        }
     }
     var diagonal_moves = P4_MOVES[P4_BISHOP];
     var grid_moves = P4_MOVES[P4_ROOK];
@@ -616,17 +635,20 @@ function p4_check_check(state, colour){
             e += m;
             E = board[e];
         } while (!E);
-        if((E & diag_mask) == diag_slider)
+        if((E & diag_mask) == diag_slider && (1-(colour<<1))*(s - s%10) >= (1-(colour<<1))*(e - e%10)) {
+            //p4_log("s: "+s+" e: "+(s + knight_moves[i])+" dir: "+(1-(colour<<1)));
             return true;
-
+        }
         m = grid_moves[i];
         e = s;
         do {
             e += m;
             E = board[e];
         } while (!E);
-        if((E & grid_mask) == grid_slider)
+        if((E & grid_mask) == grid_slider && (1-(colour<<1))*(s - s%10) >= (1-(colour<<1))*(e - e%10)) {
+            //p4_log("s: "+s+" e: "+(s + knight_moves[i])+" dir: "+(1-(colour<<1)));
             return true;
+        }
     }
     return false;
 }
@@ -726,13 +748,14 @@ function p4_findmove(state, level, colour, ep){
         var mscore = mv[0];
         var ms = mv[1];
         var me = mv[2];
-        if (mscore > P4_WIN){
-            p4_log("XXX taking king! it should never come to this");
+        /*if (mscore > P4_WIN){
+            //p4_log("XXX taking king! it should never come to this");
+            //p4_log("ms: "+ms+" me: "+me+" colour: "+colour+" i: " + i);
             alpha = P4_KING_VALUE;
             bs = ms;
             be = me;
             break;
-        }
+        }*/
         t = -state.treeclimber(state, level - 1, 1 - colour, mscore, ms, me,
                                P4_MIN_SCORE, -alpha);
         if (t > alpha){
@@ -879,46 +902,6 @@ function p4_unmake_move(state, move){
     state.castles = move.castles;
 }
 
-
-function p4_insufficient_material(state){
-    var knights = false;
-    var bishops = undefined;
-    var i;
-    var board = state.board;
-    for(i = 20; i  < 100; i++){
-        var piece = board[i] & 14;
-        if(piece == 0 || piece == P4_KING){
-            continue;
-        }
-        if (piece == P4_KNIGHT){
-            /* only allow one knight of either colour, never with a bishop */
-            if (knights || bishops !== undefined){
-                return false;
-            }
-            knights = true;
-        }
-        else if (piece == P4_BISHOP){
-            /*any number of bishops, but on only one colour square */
-            var x = i & 1;
-            var y = parseInt(i / 10) & 1;
-            var parity = x ^ y;
-            if (knights){
-                return false;
-            }
-            else if (bishops === undefined){
-                bishops = parity;
-            }
-            else if (bishops != parity){
-                return false;
-            }
-        }
-        else {
-             return false;
-        }
-    }
-    return true;
-}
-
 /* p4_move(state, s, e, promotion)
  * s, e are start and end positions
  *
@@ -980,6 +963,17 @@ function p4_move(state, s, e, promotion){
         return {flags: P4_MOVE_ILLEGAL, ok: false};
     }
 
+    /* Is it an illegal king capture from front? */
+    /*var pieces = state.pieces[other_colour];
+    var p;
+    i = pieces.length;
+    do {
+        p = pieces[--i];
+    } while (p[0] != (P4_KING | other_colour));
+    if (E === p && (2*colour-1)*(s - s%10) > (2*colour-1)*(e - e%10)) {
+      return {flags: P4_MOVE_ILLEGAL, ok: false};
+    }*/
+
     /*Try the move, and see what the response is.*/
     var changes = p4_make_move(state, s, e, promotion);
 
@@ -989,6 +983,7 @@ function p4_move(state, s, e, promotion){
         p4_log('in check', changes);
         return {flags: P4_MOVE_ILLEGAL, ok: false, string: "in check!"};
     }
+    
     /*The move is known to be legal. We won't be undoing it.*/
 
     var flags = P4_MOVE_FLAG_OK;
@@ -1001,7 +996,7 @@ function p4_move(state, s, e, promotion){
         state.draw_timeout = 0;
         flags |= P4_MOVE_FLAG_CAPTURE;
     }
-    else if ((S & 14) == P4_PAWN){
+    else if (S & 14 == P4_PAWN){
         state.draw_timeout = 0;
     }
     else{
@@ -1014,8 +1009,8 @@ function p4_move(state, s, e, promotion){
     var repetitions = (state.position_counts[shortfen] || 0) + 1;
     state.position_counts[shortfen] = repetitions;
     state.current_repetitions = repetitions;
-    if (state.draw_timeout > 100 || repetitions >= 3 ||
-        p4_insufficient_material(state)){
+    if (state.draw_timeout > 100 || repetitions >= 3){
+        //XXX also if material drops too low?
         flags |= P4_MOVE_FLAG_DRAW;
     }
     state.moveno++;
@@ -1024,7 +1019,7 @@ function p4_move(state, s, e, promotion){
     if (p4_check_check(state, other_colour)){
         flags |= P4_MOVE_FLAG_CHECK;
     }
-    /* check for (stale|check)mate, by seeing if there is a move for
+    /* check for (state|check)mate, by seeing if there is a move for
      * the other side that doesn't result in check. (In other words,
      * reduce the pseudo-legal-move list down to a legal-move list,
      * and check it isn't empty).
@@ -1050,7 +1045,7 @@ function p4_move(state, s, e, promotion){
         flags |= P4_MOVE_FLAG_MATE;
 
     var movestring = p4_move2string(state, s, e, S, promotion, flags, moves);
-    p4_log("successful move", s, e, movestring, flags);
+    //p4_log("successful move", s, e, movestring, flags);
     state.prepared = false;
     return {
         flags: flags,
@@ -1256,9 +1251,9 @@ function p4_fen2state(fen, state){
     //fen does Y axis backwards, X axis forwards */
     var y = 90;
     var x = 1;
-    var i, c;
+    var i;
     for (var j = 0; j < fen_board.length; j++){
-        c = fen_board.charAt(j);
+        var c = fen_board.charAt(j);
         if (c == '/'){
             x = 1;
             y -= 10;
@@ -1280,27 +1275,10 @@ function p4_fen2state(fen, state){
     }
     state.to_play = (fen_toplay.toLowerCase() == 'b') ? 1 : 0;
     state.castles = 0;
-    /* Sometimes we meet bad FEN that says it can castle when it can't. */
-    var wk = board[25] == P4_KING;
-    var bk = board[95] == P4_KING + 1;
-    var castle_lut = {
-        k: 8 * (bk && board[98] == P4_ROOK + 1),
-        q: 4 * (bk && board[91] == P4_ROOK + 1),
-        K: 2 * (wk && board[28] == P4_ROOK),
-        Q: 1 * (wk && board[21] == P4_ROOK)
-    };
     for (i = 0; i < fen_castles.length; i++){
-        c = fen_castles.charAt(i);
-        var castle = castle_lut[c];
-        if (castle !== undefined){
-            state.castles |= castle;
-            if (castle == 0){
-                console.log("FEN claims castle state " + fen_castles +
-                            " but pieces are not in place for " + c);
-            }
-        }
+        var bit = {k: 8, q: 4, K: 2, Q: 1}[fen_castles.charAt(i)];
+        state.castles |= (bit || 0);
     }
-
     state.enpassant = (fen_enpassant != '-') ? p4_destringify_point(fen_enpassant) : 0;
     state.draw_timeout = parseInt(fen_timeout);
     if (fen_moveno === undefined){
@@ -1518,16 +1496,16 @@ function p4_find_source_point(state, e, str){
             }
         }
     }
-    p4_log("finding", str, "that goes to", e, "got", possibilities);
+    //p4_log("finding", str, "that goes to", e, "got", possibilities);
 
     if (possibilities.length == 0){
         return 0;
     }
-    else if (possibilities.length > 1){
+    /*else if (possibilities.length > 1){
         p4_log("p4_find_source_point seems to have failed",
                state, e, str,
                possibilities);
-    }
+    }*/
     return possibilities[0];
 }
 
@@ -1564,7 +1542,7 @@ function p4_random31(state){
 }
 
 function p4_random_int(state, top){
-    /* uniform integer in range [0 <= n < top), supposing top < 2 ** 31
+    /* uniform integer in range [0 < n < top), supposing top < 2 ** 31
      *
      * This method is slightly (probably pointlessly) more accurate
      * than converting to 0-1 float, multiplying and truncating, and

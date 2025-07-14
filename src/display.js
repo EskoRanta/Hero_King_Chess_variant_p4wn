@@ -4,10 +4,6 @@
  * laws allow. No warranty; no restrictions.
  *
  * lives at http://p4wn.sf.net/
- *
- * @author Douglas Bagnall <douglas@paradise.net.nz>
- * @author Oliver Merkel <merkel.oliver@web.de>
- *
  */
 /* The routines here draw the screen and handle user interaction */
 
@@ -23,8 +19,8 @@ var P4WN_WHITE_SQUARE = 'p4wn-white-square';
 
 var P4WN_ROTATE_BOARD = true;
 var P4WN_LEVELS = ['stupid', 'middling', 'default', 'slow', 'slowest'];
-var P4WN_DEFAULT_LEVEL = 2;
-var P4WN_ADAPTIVE_LEVELS = false;
+var P4WN_DEFAULT_LEVEL = 4;
+var P4WN_ADAPTIVE_LEVELS = true;
 
 var P4WN_IMAGE_DIR = 'images';
 
@@ -129,18 +125,19 @@ _p4d_proto.computer_move = function(){
     this.auto_play_timeout = undefined;
     var state = this.board_state;
     var mv;
-    var depth = this.computer_level + 1;
+    var depth = this.computer_level + 2;
     var start_time = Date.now();
     mv = state.findmove(depth);
     var delta = Date.now() - start_time;
-    p4_log("findmove took", delta);
+    //p4_log("findmove took", delta);
+    //p4_log(mv);
     if (P4WN_ADAPTIVE_LEVELS && depth > 2){
         var min_time = 25 * depth;
         while (delta < min_time){
             depth++;
             mv = state.findmove(depth);
             delta = Date.now() - start_time;
-            p4_log("retry at depth", depth, " total time:", delta);
+            //p4_log("retry at depth", depth, " total time:", delta);
         }
     }
     this.move(mv[0], mv[1]);
@@ -361,11 +358,11 @@ var P4WN_CONTROLS = [
             return function(e){
                 var x = (p4d.pawn_becomes + 1) % P4WN_PROMOTION_STRINGS.length;
                 p4d.pawn_becomes = x;
-                _event_target(e).innerHTML = 'pawn promotes to <b>' + P4WN_PROMOTION_STRINGS[x] + '</b>';
+                _event_target(e).innerHTML = 'pawn becomes <b>' + P4WN_PROMOTION_STRINGS[x] + '</b>';
             };
         },
         refresh: function(el){
-            el.innerHTML = 'pawn promotes to <b>' + P4WN_PROMOTION_STRINGS[this.pawn_becomes] + '</b>';
+            el.innerHTML = 'pawn becomes <b>' + P4WN_PROMOTION_STRINGS[this.pawn_becomes] + '</b>';
         }
     },
     {/*computer level*/
@@ -389,7 +386,7 @@ var P4WN_CONTROLS = [
                 window.clearTimeout(p4d.auto_play_timeout);
                 p4d.refresh_buttons();
                 p4d.log('DRAW');
-                p4_log(p4_state2fen(p4d.board_state));
+                //p4_log(p4_state2fen(p4d.board_state));
                 p4d.auto_play_timeout = undefined;
                 p4d.next_move_timeout = undefined;
             };
@@ -523,18 +520,14 @@ function P4wn_display(target){
     return this;
 }
 
-_p4d_proto.render_elements = function(square_height, square_width){
-    var e = this.elements;
-    var board_height = (8 * (square_height + 3)) + 'px';
+function p4wnify(id){
+    var p4d = new P4wn_display(id);
+    var e = p4d.elements;
+    var board_height = (8 * (P4WN_SQUARE_HEIGHT + 3)) + 'px';
     e.inner.style.height = board_height;
     e.log.style.height = board_height;
     e.board.style.height = board_height;
-    e.controls.style.width = (11 * square_width) + 'px';
-}
-
-function p4wnify(id){
-    var p4d = new P4wn_display(id);
-    p4d.render_elements(P4WN_SQUARE_HEIGHT, P4WN_SQUARE_WIDTH);
+    e.controls.style.width = (15 * P4WN_SQUARE_WIDTH) + 'px';
     p4d.write_board_html();
     p4d.write_controls_html(P4WN_CONTROLS);
     p4d.interpret_query_string();
