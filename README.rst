@@ -1,6 +1,9 @@
 P4wn, a smallish javascript chess engine
 now plays the Hero King Chess variant in this fork
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+PLEASE NOTE THAT THE FOLLOWING ORIGINAL DOCUMENTATION
+OF P4wn IS ONLY PARTIALLY RELEVANT TO THE FORK! 
 
 P4wn is both - an online web page and an offline HTML mobile and tablet
 application - that can play chess. It is quite small, plays well
