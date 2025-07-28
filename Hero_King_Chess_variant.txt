@@ -1,4 +1,6 @@
-In Hero King Chess Variant, there is only one change in the rules of standard chess, namely that the pieces are replaced by Hero King -piece
+Introduction
+
+In Hero King Chess Variant, there is only one change in the rules of standard chess, namely that each king is replaced by a Hero King -piece
 who is still the royal piece and moves like the standard chess king, but has *frontal shielding*, which changes the game drastically.
 
 The Hero King can't be threatened by any piece in a rank that is in forward position from the Hero King's rank (as defined by what is forward for his pawns).
@@ -7,3 +9,29 @@ That makes the Hero King a fearsome frontline warrior totally unlike the wimpy s
 
 Have fun playing the variant! It will surely be confusing at first and the situations with forward positioned Hero Kings will look crazy, but you'll learn.
 A hint: Capturing an enemy rook from its starting square by your Hero King is very tempting, but it will often lead to tragedy. ;)
+
+
+The Variant From Chess Programming Viewpoint:
+
+The variant of course has more legal positions than standard chess.
+The decisive games tend to last longer than in standard chess. The shortest decisive games in the variant take 6 move for black to checkmate white, who *really* must help black to do it.
+Pawn structures are less important in the variant than in standard chess, but maybe pawn promotions are even more important.
+The opening theory is also almost non-existing for the variant. (For example, who knows if 1. f3 e5 2. Kf2 d5 3. Ke3 is good for white or not?)
+The meaning and value of "development" in the opening is somewhat fuzzy. 
+To me the variant feels less tactical (except for the king moves?) and less material advantage oriented, but maybe more "temporarily positional" than standard chess.
+It could be that the variant is even easier for engines than standard chess. It is hard to try to asses how much the game tree growth per ply differs from standard chess.
+
+
+Ideas For Future Developments:
+
+The rules for the variant and the code could be made better for endgames by implementing rules that a lone king without a single other piece left would be "demoralised"
+and downgraded to a non-hero standard chess king, who would have lifetime until he would be checked the first time. That is how a large portion of endgames would become decisive.
+A Hero King could mate a lone king at his back rank!
+
+Castling and en passant rules could be removed from the game, to simplify engine move generation. Who castles in Hero King Chess anyway?
+
+Seeing a strong engines (learned to play the variant by self-play) against each other would look surreal, I believe. At whe moment nobody knows how this variant should be played
+and what are the good measures for assessing king safety, for example.
+
+Starting the game from different Fisher random positions would make the mayhem maybe too much to bear for somebody who is an average player of the standard chess, like me.
+ 
